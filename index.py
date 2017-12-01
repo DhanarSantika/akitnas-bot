@@ -9,6 +9,9 @@ from linebot.models import (
     MessageTemplateAction,URITemplateAction,
     ImageCarouselTemplate,ImageCarouselColumn)
 from wit import Wit
+import sys
+from io import StringIO
+import contextlib
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
@@ -30,41 +33,37 @@ def callback():
         abort(400)
     return 'OK'
 
+@contextlib.contextmanager
+def stdoutIO(stdout=None):
+    old = sys.stdout
+    if stdout is None:
+        stdout = StringIO()
+    sys.stdout = stdout
+    yield stdout
+    sys.stdout = old
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
-    if (event.message.text == '/list'):
-        reply_message = TemplateSendMessage(alt_text='Message not supported',
-        template=ImageCarouselTemplate(columns=[ImageCarouselColumn(
-            image_url='https://via.placeholder.com/800x800',
-            action=MessageTemplateAction(label='Product 1',text='/buy product1',)),
-            ImageCarouselColumn(image_url='https://via.placeholder.com/800x800',
-            action=MessageTemplateAction(label='Product 2',text='/buy product2',))]))
-    elif (event.message.text == '/buy product1'):
-        reply_message = TextSendMessage(text='Product 1 added')
-    elif (event.message.text == '/buy product2'):
-        reply_message = TextSendMessage(text='Product 2 added')
-    elif (event.message.text == '/who am i'):
-        profile = line_bot_api.get_profile(event.source.user_id)
-        reply_message = TextSendMessage(text='Name: {}\nUser ID: {}\nPicture URL: {}\nStatus: {}'.format(
-            profile.display_name,profile.user_id,profile.picture_url,profile.status_message))
-    elif (event.message.text == '/select'):
+    get_message = event.message.text
+    if(get_message == "/help"):
+        reply_message = TextSendMessage(text="You can run simple python program just by write the code here. Remember, this apps does not support user input yet.")
+    elif(get_message == "/about"):
+        reply_message = TextSendMessage(text="Lython v.0.1")
+    elif(get_message == "/options"):
         reply_message = TemplateSendMessage(alt_text='Message not supported',
         template=ButtonsTemplate(title='Menu',text='Please select action',
-        actions=[MessageTemplateAction(label='Say hi!',text='/hi'),
-        URITemplateAction(label='Go to website',uri='http://dasardasarppw.herokuapp.com/')]))
-    elif (event.message.text == '/hi'):
-        reply_message = TextSendMessage(text='hi!')
-    
+        actions=[MessageTemplateAction(label='Help',text='/help'),
+        MessageTemplateAction(label='About',text='/about')]))
     else:
-        resp = client.message(event.message.text)
-        if (resp.get('entities').get('greeting', None) != None):
-            resp = resp.get('entities').get('greeting')[0]
-            if resp.get('value') == 'hai':
-                reply_message = TextSendMessage(text='Hai! Semoga harimu menyenangkan')
-            elif resp.get('value') == 'halo':
-                reply_message = TextSendMessage(text='Halo juga! Semangat buat hari ini :)')
+        if('input()' not in get_message):
+            try:
+                with stdoutIO() as s:
+                    exec(get_message)
+                    reply_message = TextSendMessage(text=s.getvalue())
+            except:
+                reply_message = TextSendMessage(text="An error has occured")
         else:
-            reply_message = TextSendMessage(text='Unknown error occured')
+            reply_message = TextSendMessage(text="This bot doesn't support user input yet :(")
     line_bot_api.reply_message(event.reply_token,reply_message)
         
 
