@@ -44,24 +44,31 @@ def stdoutIO(stdout=None):
 
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
+    restricted_modules = ['os','requests']
+    for i in restricted_modules:
+        sys.modules[i] = None
     get_message = event.message.text
     if(get_message == "/help"):
         reply_message = TextSendMessage(text="You can run simple python program just by write the code here. Remember, this apps does not support user input yet.")
     elif(get_message == "/about"):
-        reply_message = TextSendMessage(text="Lython v.0.1")
+        reply_message = TextSendMessage(text="Lython v.0.1.1")
     elif(get_message == "/options"):
         reply_message = TemplateSendMessage(alt_text='Message not supported',
         template=ButtonsTemplate(title='Menu',text='Please select action',
         actions=[MessageTemplateAction(label='Help',text='/help'),
         MessageTemplateAction(label='About',text='/about')]))
     else:
-        if('input()' not in get_message):
+        if('input(' not in get_message):
             try:
                 with stdoutIO() as s:
                     exec(get_message)
                     reply_message = TextSendMessage(text=s.getvalue())
+            except SystemExit:
+                err = "Don't go :'("
+                reply_message = TextSendMessage(text=err)
             except:
-                reply_message = TextSendMessage(text="An error has occured")
+                err = "{} occurred".format(sys.exc_info()[0].__name__)
+                reply_message = TextSendMessage(text=err)
         else:
             reply_message = TextSendMessage(text="This bot doesn't support user input yet :(")
     line_bot_api.reply_message(event.reply_token,reply_message)
