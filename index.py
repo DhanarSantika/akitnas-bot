@@ -13,7 +13,6 @@ import sys
 from io import StringIO
 import contextlib
 from timeout import Timeout
-import builtins as __builtin__
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
@@ -57,12 +56,6 @@ def open(*args,**kwargs):
 def input(*args,**kwargs):
     raise IOError
 
-def print(*args,**kwargs):
-    if(file!=None):
-        raise IOError
-    else:
-        __builtin__.print(*args,**kwargs)
-
 @composed(handler.add(MessageEvent, message=TextMessage))
 def handle_message(event):
     restricted_modules = ['os','subprocess','requests','tkinter','Tkinter','environ']
@@ -86,9 +79,9 @@ def handle_message(event):
         except SystemExit:
             err = "Don't go :'("
             reply_message = TextSendMessage(text=err)
-        except: 
+        '''except: 
             err = "{} occurred".format(sys.exc_info()[0].__name__)
-            reply_message = TextSendMessage(text=err)
+            reply_message = TextSendMessage(text=err)'''
     line_bot_api.reply_message(event.reply_token,reply_message)
         
 
