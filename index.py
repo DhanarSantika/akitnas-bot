@@ -1,4 +1,4 @@
-from flask import Flask, request, abort
+from flask import Flask, request as something, abort
 from dotenv import load_dotenv, find_dotenv
 import os
 from linebot import LineBotApi, WebhookHandler
@@ -20,6 +20,9 @@ line_bot_api = LineBotApi(os.environ.get('CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.environ.get('CHANNEL_SECRET'))
 client = Wit(os.environ.get('WIT_ACCESS_TOKEN'))
 
+del os
+del load_dotenv,find_dotenv
+
 def composed(*decs):
     def deco(f):
         for dec in reversed(decs):
@@ -30,9 +33,9 @@ def composed(*decs):
 @app.route('/callback', methods=['POST'])
 def callback():
     # get X-Line-Signature header value
-    signature = request.headers['X-Line-Signature']
+    signature = something.headers['X-Line-Signature']
     # get request body as text
-    body = request.get_data(as_text=True)
+    body = something.get_data(as_text=True)
     app.logger.info('Request body: {}'.format(body))
     # handle webhook body
     try:
@@ -56,10 +59,14 @@ def open(*args,**kwargs):
 def input(*args,**kwargs):
     raise IOError
 
+def dir(*args,**kwargs):
+    raise IOError
+
 @composed(handler.add(MessageEvent, message=TextMessage))
 def handle_message(event):
-    restricted_modules = ['os','subprocess','requests','tkinter','Tkinter','environ']
-    for i in restricted_modules:
+    _restricted_modules = ['os','subprocess','requests','tkinter','Tkinter','environ','inspect',
+    'dotenv']
+    for i in _restricted_modules:
         sys.modules[i] = None
     get_message = event.message.text
     if(get_message == "/help"):
@@ -75,7 +82,11 @@ def handle_message(event):
         try:
             with stdoutIO() as s, Timeout(3):
                 exec(get_message)
-                reply_message = TextSendMessage(text=s.getvalue())
+                message = s.getvalue()
+                if(len(message)>2000):
+                    reply_message = TextSendMessage(text="This bot cannot reply with more than 2000 characters yet :(")
+                else:
+                    reply_message = TextSendMessage(text=message)
         except SystemExit:
             err = "Don't go :'("
             reply_message = TextSendMessage(text=err)
