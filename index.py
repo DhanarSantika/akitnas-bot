@@ -13,7 +13,7 @@ import sys
 from io import StringIO
 import contextlib
 from timeout import Timeout
-import __builtin__
+import builtins as __builtin__
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
