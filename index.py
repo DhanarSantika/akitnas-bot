@@ -79,9 +79,9 @@ def handle_message(event):
         except SystemExit:
             err = "Don't go :'("
             reply_message = TextSendMessage(text=err)
-        '''except: 
+        except: 
             err = "{} occurred".format(sys.exc_info()[0].__name__)
-            reply_message = TextSendMessage(text=err)'''
+            reply_message = TextSendMessage(text=err)
     line_bot_api.reply_message(event.reply_token,reply_message)
         
 
