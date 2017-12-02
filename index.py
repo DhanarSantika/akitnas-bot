@@ -12,12 +12,21 @@ from wit import Wit
 import sys
 from io import StringIO
 import contextlib
+from timeout import Timeout
+import __builtin__
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
 line_bot_api = LineBotApi(os.environ.get('CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.environ.get('CHANNEL_SECRET'))
 client = Wit(os.environ.get('WIT_ACCESS_TOKEN'))
+
+def composed(*decs):
+    def deco(f):
+        for dec in reversed(decs):
+            f = dec(f)
+        return f
+    return deco
 
 @app.route('/callback', methods=['POST'])
 def callback():
@@ -42,9 +51,21 @@ def stdoutIO(stdout=None):
     yield stdout
     sys.stdout = old
 
-@handler.add(MessageEvent, message=TextMessage)
+def open(*args,**kwargs):
+    raise IOError
+
+def input(*args,**kwargs):
+    raise IOError
+
+def print(*args,**kwargs):
+    if(file!=None):
+        raise IOError
+    else:
+        __builtin__.print(*args,**kwargs)
+
+@composed(handler.add(MessageEvent, message=TextMessage))
 def handle_message(event):
-    restricted_modules = ['os','requests']
+    restricted_modules = ['os','subprocess','requests','tkinter','Tkinter','environ']
     for i in restricted_modules:
         sys.modules[i] = None
     get_message = event.message.text
@@ -58,19 +79,16 @@ def handle_message(event):
         actions=[MessageTemplateAction(label='Help',text='/help'),
         MessageTemplateAction(label='About',text='/about')]))
     else:
-        if('input(' not in get_message):
-            try:
-                with stdoutIO() as s:
-                    exec(get_message)
-                    reply_message = TextSendMessage(text=s.getvalue())
-            except SystemExit:
-                err = "Don't go :'("
-                reply_message = TextSendMessage(text=err)
-            except:
-                err = "{} occurred".format(sys.exc_info()[0].__name__)
-                reply_message = TextSendMessage(text=err)
-        else:
-            reply_message = TextSendMessage(text="This bot doesn't support user input yet :(")
+        try:
+            with stdoutIO() as s, Timeout(3):
+                exec(get_message)
+                reply_message = TextSendMessage(text=s.getvalue())
+        except SystemExit:
+            err = "Don't go :'("
+            reply_message = TextSendMessage(text=err)
+        except: 
+            err = "{} occurred".format(sys.exc_info()[0].__name__)
+            reply_message = TextSendMessage(text=err)
     line_bot_api.reply_message(event.reply_token,reply_message)
         
 
