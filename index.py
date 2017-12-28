@@ -65,16 +65,20 @@ def dir(*args,**kwargs):
 def handle_message(event):
     profile = line_bot_api.get_profile(event.source.user_id)
     id = str(profile.user_id)
-    if(EnterInput.input):
-        get_message = event.message.text
-        case = get_message.split("\n")
-        EnterInput.user_input[id] = case[:]
-        EnterInput.input = False
-        reply_message = TextSendMessage(text="Now enter your program")
+    if(id in EnterInput.input):
+        if(EnterInput.input[id]):
+            get_message = event.message.text
+            case = get_message.split("\n")
+            EnterInput.user_input[id] = case[:]
+            EnterInput.input[id] = False
+            reply_message = TextSendMessage(text="Now enter your program")
     else:
 
         if(id not in EnterInput.user_input):
             EnterInput.user_input[id]=[]
+        
+        if(id not in EnterInput.input):
+            EnterInput.input[id] = False
 
         def input(str="",*args,**kwargs):
             if(EnterInput.user_input):
@@ -97,7 +101,7 @@ def handle_message(event):
             MessageTemplateAction(label='About',text='/about'),MessageTemplateAction(label="Input",text='/input')]))
         elif(get_message == "/input"):
             reply_message = TextSendMessage(text="Enter your input")
-            EnterInput.input = True
+            EnterInput.input[id] = True
         else:
             try:
                 with stdoutIO() as s, Timeout(3):
@@ -112,7 +116,7 @@ def handle_message(event):
                 err = "Don't go :'("
                 reply_message = TextSendMessage(text=err)
             except InputSection:
-                reply_message = TextSendMessage(text="Input are none/insuficcient. Use /input to add user input")
+                reply_message = TextSendMessage(text="Input are none or insuficcient. Use /input to add user input")
             except: 
                 err = "{} occurred".format(sys.exc_info()[0].__name__)
                 reply_message = TextSendMessage(text=err)

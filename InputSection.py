@@ -3,4 +3,4 @@ class InputSection(Exception):
 
 class EnterInput(object):
     user_input = {}
-    input = False
+    input = {}
