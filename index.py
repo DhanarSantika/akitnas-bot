@@ -63,18 +63,22 @@ def dir(*args,**kwargs):
 
 @composed(handler.add(MessageEvent, message=TextMessage))
 def handle_message(event):
-    print(EnterInput.user_input)
+    profile = line_bot_api.get_profile(event.source.user_id)
+    id = str(profile.user_id)
     if(EnterInput.input):
         get_message = event.message.text
         case = get_message.split("\n")
-        EnterInput.user_input = case[:]
+        EnterInput.user_input[id] = case[:]
         EnterInput.input = False
         reply_message = TextSendMessage(text="Now enter your program")
     else:
 
+        if(id not in EnterInput.user_input):
+            EnterInput.user_input[id]=[]
+
         def input(str="",*args,**kwargs):
             if(EnterInput.user_input):
-                return EnterInput.user_input.pop(0)
+                return EnterInput.user_input[id].pop(0)
             else:
                 raise InputSection
 
@@ -85,7 +89,7 @@ def handle_message(event):
         if(get_message == "/help"):
             reply_message = TextSendMessage(text="You can run simple python program just by write the code here. To add user input, type /input in this chat and enter the input.")
         elif(get_message == "/about"):
-            reply_message = TextSendMessage(text="Lython v.0.2.0")
+            reply_message = TextSendMessage(text="Lython v.0.2.1")
         elif(get_message == "/options"):
             reply_message = TemplateSendMessage(alt_text='Message not supported',
             template=ButtonsTemplate(title='Menu',text='Please select action',
@@ -99,7 +103,7 @@ def handle_message(event):
                 with stdoutIO() as s, Timeout(3):
                     exec(get_message)
                     message = s.getvalue()
-                    EnterInput.user_input = []
+                    EnterInput.user_input[id] = []
                     if(len(message)>2000):
                         reply_message = TextSendMessage(text="This bot cannot reply with more than 2000 characters yet :(")
                     else:
