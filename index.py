@@ -65,20 +65,20 @@ def dir(*args,**kwargs):
 def handle_message(event):
     profile = line_bot_api.get_profile(event.source.user_id)
     id = str(profile.user_id)
-    if(id in EnterInput.input):
-        if(EnterInput.input[id]):
-            get_message = event.message.text
-            case = get_message.split("\n")
-            EnterInput.user_input[id] = case[:]
-            EnterInput.input[id] = False
-            reply_message = TextSendMessage(text="Now enter your program")
-    else:
-
-        if(id not in EnterInput.user_input):
-            EnterInput.user_input[id]=[]
+    if(id not in EnterInput.user_input):
+        EnterInput.user_input[id]=[]
         
-        if(id not in EnterInput.input):
-            EnterInput.input[id] = False
+    if(id not in EnterInput.input):
+        EnterInput.input[id] = False
+    
+    if(EnterInput.input[id]):
+        get_message = event.message.text
+        case = get_message.split("\n")
+        EnterInput.user_input[id] = case[:]
+        EnterInput.input[id] = False
+        reply_message = TextSendMessage(text="Now enter your program")
+    
+    else:
 
         def input(str="",*args,**kwargs):
             if(EnterInput.user_input):
