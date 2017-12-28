@@ -13,6 +13,8 @@ import sys
 from io import StringIO
 import contextlib
 from timeout import Timeout
+from ProgramTerminated import ProgramTerminated
+from InputSection import InputSection,EnterInput
 
 app = Flask(__name__)
 load_dotenv(find_dotenv())
@@ -56,45 +58,61 @@ def stdoutIO(stdout=None):
 def open(*args,**kwargs):
     raise IOError
 
-def input(*args,**kwargs):
-    raise IOError
-
 def dir(*args,**kwargs):
     raise IOError
 
 @composed(handler.add(MessageEvent, message=TextMessage))
 def handle_message(event):
-    _restricted_modules = ['os','subprocess','requests','tkinter','Tkinter','environ','inspect',
-    'dotenv']
-    for i in _restricted_modules:
-        sys.modules[i] = None
-    get_message = event.message.text
-    if(get_message == "/help"):
-        reply_message = TextSendMessage(text="You can run simple python program just by write the code here. Remember, this apps does not support user input yet.")
-    elif(get_message == "/about"):
-        reply_message = TextSendMessage(text="Lython v.0.1.1")
-    elif(get_message == "/options"):
-        reply_message = TemplateSendMessage(alt_text='Message not supported',
-        template=ButtonsTemplate(title='Menu',text='Please select action',
-        actions=[MessageTemplateAction(label='Help',text='/help'),
-        MessageTemplateAction(label='About',text='/about')]))
+    print(EnterInput.user_input)
+    if(EnterInput.input):
+        get_message = event.message.text
+        case = get_message.split("\n")
+        EnterInput.user_input = case[:]
+        EnterInput.input = False
+        reply_message = TextSendMessage(text="Now enter your program")
     else:
-        try:
-            with stdoutIO() as s, Timeout(3):
-                exec(get_message)
-                message = s.getvalue()
-                if(len(message)>2000):
-                    reply_message = TextSendMessage(text="This bot cannot reply with more than 2000 characters yet :(")
-                else:
-                    reply_message = TextSendMessage(text=message)
-        except SystemExit:
-            err = "Don't go :'("
-            reply_message = TextSendMessage(text=err)
-        except: 
-            err = "{} occurred".format(sys.exc_info()[0].__name__)
-            reply_message = TextSendMessage(text=err)
-    line_bot_api.reply_message(event.reply_token,reply_message)
-        
+
+        def input(str="",*args,**kwargs):
+            if(EnterInput.user_input):
+                return EnterInput.user_input.pop(0)
+            else:
+                raise InputSection
+
+        _restricted_modules = ['os','subprocess','requests','tkinter','Tkinter','environ','inspect','dotenv']
+        for i in _restricted_modules:
+            sys.modules[i] = None
+        get_message = event.message.text
+        if(get_message == "/help"):
+            reply_message = TextSendMessage(text="You can run simple python program just by write the code here. To add user input, type /input in this chat and enter the input.")
+        elif(get_message == "/about"):
+            reply_message = TextSendMessage(text="Lython v.0.2.0")
+        elif(get_message == "/options"):
+            reply_message = TemplateSendMessage(alt_text='Message not supported',
+            template=ButtonsTemplate(title='Menu',text='Please select action',
+            actions=[MessageTemplateAction(label='Help',text='/help'),
+            MessageTemplateAction(label='About',text='/about'),MessageTemplateAction(label="Input",text='/input')]))
+        elif(get_message == "/input"):
+            reply_message = TextSendMessage(text="Enter your input")
+            EnterInput.input = True
+        else:
+            try:
+                with stdoutIO() as s, Timeout(3):
+                    exec(get_message)
+                    message = s.getvalue()
+                    EnterInput.user_input = []
+                    if(len(message)>2000):
+                        reply_message = TextSendMessage(text="This bot cannot reply with more than 2000 characters yet :(")
+                    else:
+                        reply_message = TextSendMessage(text=message)
+            except SystemExit:
+                err = "Don't go :'("
+                reply_message = TextSendMessage(text=err)
+            except InputSection:
+                reply_message = TextSendMessage(text="Input are none/insuficcient. Use /input to add user input")
+            except: 
+                err = "{} occurred".format(sys.exc_info()[0].__name__)
+                reply_message = TextSendMessage(text=err)
+    line_bot_api.reply_message(event.reply_token,reply_message)    
 
 if __name__ == "__main__":
     app.run()
